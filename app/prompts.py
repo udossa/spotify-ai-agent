@@ -55,9 +55,11 @@ Règles générales :
 
 EXTRACT_CONSTRAINTS_PROMPT = """\
 Extrais les contraintes OBJECTIVES de cette demande de playlist. Convertis \
-les durées en minutes (« 1h30 » → 90). Ne remplis un champ que si la demande \
-le précise explicitement. Les critères subjectifs (genres, mood, répartition) \
-vont dans `other_criteria`.
+les durées en minutes (« 1h30 » → 90). Les mots de récence (« actuels », \
+« récents », « du moment », « nouveautés ») impliquent min_release_year = \
+l'année qui précède la date du jour fournie. Ne remplis un champ que si la \
+demande le précise (explicitement ou via un mot de récence). Les critères \
+subjectifs (genres, mood, répartition) vont dans `other_criteria`.
 """
 
 EXTRACT_SELECTION_PROMPT = """\

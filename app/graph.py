@@ -18,6 +18,7 @@ Le LLM propose, le code garantit :
 from __future__ import annotations
 
 import json
+from datetime import date
 from typing import Any, TypedDict
 
 from langchain_core.messages import BaseMessage, HumanMessage
@@ -119,14 +120,22 @@ async def build_graph() -> CompiledStateGraph:
         return create_react_agent(model, read_tools, prompt=CURATOR_PROMPT)
 
     async def extract(state: AgentState) -> AgentState:
+        # La date du jour vient du CODE : un LLM ne sait pas quel jour on est
+        # (son « présent » est figé à la fin de son entraînement).
+        today = date.today().isoformat()
         constraints = await model.with_structured_output(Constraints).ainvoke(
-            [HumanMessage(content=f"{EXTRACT_CONSTRAINTS_PROMPT}\n\nDemande : {state['request']}")]
+            [
+                HumanMessage(
+                    content=f"Date du jour : {today}.\n{EXTRACT_CONSTRAINTS_PROMPT}\n\n"
+                    f"Demande : {state['request']}"
+                )
+            ]
         )
         logger.info("Contraintes extraites : %s", constraints.model_dump(exclude_none=True))
         # Le code fait le déterministe : indices chiffrés + liste d'exclusion,
         # injectés dans la demande (un LLM estime mal « combien de morceaux
         # font 1h30 » et oublie des exclusions).
-        hints = []
+        hints = [f"Nous sommes le {today}."]
         if constraints.target_duration_min:
             n = round(constraints.target_duration_min / 3)
             hints.append(
