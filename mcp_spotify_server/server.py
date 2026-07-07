@@ -24,7 +24,7 @@ from spotipy.oauth2 import SpotifyOAuth
 # Charge le .env de la racine du projet (le cwd est fixé par le client MCP).
 load_dotenv()
 
-SCOPE = "playlist-modify-public playlist-modify-private"
+SCOPE = "playlist-modify-public playlist-modify-private playlist-read-private"
 
 mcp = FastMCP("spotify")
 
@@ -51,6 +51,7 @@ def _fmt_track(item: dict[str, Any]) -> dict[str, Any]:
         "artists": [a.get("name") for a in item.get("artists", [])],
         "album": item.get("album", {}).get("name"),
         "release_date": item.get("album", {}).get("release_date"),
+        "duration_min": round(item["duration_ms"] / 60000, 1) if item.get("duration_ms") else None,
         "popularity": item.get("popularity"),
         "url": item.get("external_urls", {}).get("spotify"),
     }
@@ -132,6 +133,17 @@ def get_user_playlists(limit: int = 20) -> list[dict[str, Any]]:
         {"id": p.get("id"), "name": p.get("name"), "tracks": p.get("tracks", {}).get("total")}
         for p in res.get("items", [])
     ]
+
+
+@mcp.tool()
+def get_playlist_tracks(playlist_id: str) -> list[dict[str, Any]]:
+    """Retourne les morceaux d'une playlist (mêmes champs que search_tracks).
+
+    Utile pour vérifier le contenu existant, p. ex. éviter les doublons entre
+    playlists (comparer les `uri`).
+    """
+    res = _client()._get(f"playlists/{playlist_id}/items", limit=100)
+    return [_fmt_track(it["item"]) for it in res.get("items", []) if it.get("item")]
 
 
 if __name__ == "__main__":

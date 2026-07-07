@@ -86,8 +86,10 @@ L'agent agit sur un vrai compte Spotify via OAuth. Sur le
    > les comptes ajoutés ici (max 5) peuvent utiliser l'app. Sinon :
    > `403 — the user may not be registered`.
 
-Scopes demandés par le serveur MCP : `playlist-modify-public` et
-`playlist-modify-private` (le minimum pour créer et remplir des playlists).
+Scopes demandés par le serveur MCP : `playlist-modify-public`,
+`playlist-modify-private` (créer et remplir des playlists) et
+`playlist-read-private` (lire les playlists existantes, p. ex. pour éviter
+les doublons).
 
 ## 3. Installation
 
@@ -167,7 +169,8 @@ spotify-ai-agent/
 │   ├── rag.py                #   ingestion + retrieval ChromaDB
 │   ├── mcp_client.py         #   lance le serveur MCP, charge ses outils
 │   ├── agent.py              #   LLM + agrégation des outils
-│   ├── graph.py              #   graphe LangGraph (boucle agent ⇄ outils)
+│   ├── graph.py              #   graphe : extract → curate ⇄ validate → finalize
+│   ├── validation.py         #   contraintes + validation EN CODE de la sélection
 │   └── main.py               #   CLI
 ├── mcp_spotify_server/       # LES OUTILS (actions Spotify, zéro logique métier)
 │   └── server.py
@@ -183,7 +186,9 @@ spotify-ai-agent/
 
 ## Choix par défaut (modifiables)
 
-- **LLM** : `LLM_MODEL=openai:gpt-4o-mini`. Pour Anthropic :
+- **LLM** : `LLM_MODEL=openai:gpt-4o-mini` par défaut ; passe à `openai:gpt-4o`
+  pour les demandes multi-contraintes (durée cible, déduplication…), nettement
+  plus fiable. Pour Anthropic :
   `uv sync --extra anthropic` puis `LLM_MODEL=anthropic:claude-sonnet-5`
   (une clé `ANTHROPIC_API_KEY` dans `.env` ; les embeddings du RAG restent
   OpenAI).

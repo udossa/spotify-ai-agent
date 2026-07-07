@@ -80,29 +80,36 @@ Un bon agent est conçu pour que la vérité vienne des outils, pas du modèle.
 
 ### ③ La boucle — LangGraph
 
-[`app/graph.py`](../app/graph.py) assemble le tout en un **graphe d'états** :
-
-```python
-graph = create_react_agent(model, tools, prompt=SYSTEM_PROMPT)
-```
-
-Le graphe compilé a cette forme (tu peux l'afficher toi-même, voir §3) :
+[`app/graph.py`](../app/graph.py) assemble le tout en un **graphe d'états**.
+Au cœur, le pattern **ReAct** (*Reasoning + Acting*) : à chaque tour, le LLM
+choisit entre « appeler un outil » et « répondre » :
 
 ```
-__start__ ──► agent ──► (décision)
-                │            │
-                │      appel d'outil ?
-                │            ▼
-                │         tools ──► (résultat renvoyé à l'agent)
-                │            │
-                │            └──────► agent (re-raisonne)
-                ▼
-             __end__  (quand l'agent produit une réponse finale)
+agent ──► (décision) ──► appel d'outil ? ──► tools ──► agent (re-raisonne)
+              │
+              └──► réponse finale (fin de boucle)
 ```
 
-C'est le pattern **ReAct** (*Reasoning + Acting*) : à chaque tour, le LLM
-choisit entre « appeler un outil » et « répondre ». La boucle s'arrête quand il
-répond.
+Mais le graphe complet enveloppe cette boucle de garde-fous **en code** —
+parce qu'un LLM peut affirmer « environ 1h30 » sans l'avoir calculé (§7) :
+
+```
+START → extract → curate ⇄ validate → finalize → END
+                    ▲          │
+                    └─ écarts ─┘   (4 tentatives max, sinon abort)
+```
+
+- `extract` — LLM → contraintes structurées (durée, année min, doublons…),
+  plus les indices calculés en code (90 min ≈ 30 morceaux, liste d'exclusion).
+- `curate` — la boucle ReAct ci-dessus, avec des outils de LECTURE seulement ;
+  son `search_tracks` est pré-filtré en code (exclusions, année).
+- `validate` — CODE PUR ([`app/validation.py`](../app/validation.py)) : relit
+  chaque morceau depuis Spotify et vérifie durée/années/doublons. Répare
+  lui-même ce qui est déterministe (retirer un doublon), renvoie un feedback
+  chiffré au curateur sinon.
+- `finalize` — crée la playlist avec EXACTEMENT la sélection validée.
+
+Principe : **le LLM propose, le code garantit.**
 
 ### ④ Les outils — les mains de l'agent
 
@@ -148,7 +155,10 @@ les logs JSON sur stderr (`CallToolRequest` = un appel d'outil).
 
 ### Le même run, en diagramme de séquence
 
-Qui appelle qui, dans l'ordre (`───►` appel, `◄┄┄┄` retour) :
+Qui appelle qui, dans l'ordre (`───►` appel, `◄┄┄┄` retour). Ce diagramme
+montre la phase `curate` du graphe (la boucle ReAct) suivie de la création ;
+depuis l'ajout du nœud de validation (§②-③), la création n'a lieu qu'après
+vérification en code de la sélection :
 
 ```text
 CLI            Agent            LLM             RAG             MCP          Spotify
@@ -301,13 +311,21 @@ agent qui aurait d'autres règles.
 Un agent reste probabiliste. Observé sur ce projet même :
 
 - **Respect approximatif des consignes** : demandé 20 titres, obtenu 26 lors
-  d'un run. Correctif : durcir le prompt (« EXACTEMENT le nombre demandé —
-  compte avant d'ajouter »). Pour une garantie absolue, il faudrait un nœud de
-  validation dans le graphe (du code, pas du prompt).
+  d'un run. Pire : demandé « 1h30, sans doublons, ≥2025 », obtenu 31 min avec
+  7 doublons — et l'agent a affirmé « environ 1h30 » sans l'avoir calculé.
+  Correctif appliqué : le **nœud de validation** du graphe (§②-③) — durée,
+  années et doublons sont désormais vérifiés en code avant toute création.
 - **Invention d'arguments d'outils** : le filtre `energy:high` qui n'existe
-  pas. Correctif : contraindre via la docstring de l'outil + le prompt.
-- **Coût et latence** : chaque tour de boucle = un appel LLM. Notre run en
-  fait ~10. Un agent mal borné peut boucler cher.
+  pas, le tag `genre:rap fr` inventé (0 résultat silencieux). Correctif :
+  docstring + prompt, et pré-filtrage des résultats en code.
+- **Arithmétique et opérations d'ensembles** : additionner 30 durées ou
+  comparer 40 candidats à 30 exclusions, un LLM le fait mal. Correctif : ces
+  opérations vivent en code (indices chiffrés, feedback de retry calculé,
+  réparation automatique).
+- **Coût et latence** : chaque tour de boucle = un appel LLM, et l'historique
+  grandit à chaque tour (on a heurté le quota tokens/min d'OpenAI en plein
+  run). Correctif : retries avec backoff + réinitialisation de l'historique à
+  chaque tentative.
 
 La conception d'un agent, c'est arbitrer en permanence entre **souplesse**
 (laisser le LLM décider — dans le prompt) et **garanties** (contraindre — dans
@@ -324,9 +342,10 @@ Exercices par difficulté croissante :
 3. **Outil** — ajoute `remove_tracks_from_playlist` au serveur MCP (même
    pattern que `add_tracks_to_playlist`) : l'agent sait alors *corriger* une
    playlist.
-4. **Graphe** — remplace `create_react_agent` par un graphe manuel avec un
-   nœud de validation qui recompte les titres avant l'ajout (voir la doc
-   LangGraph sur `StateGraph`).
+4. **Graphe** — ✅ *déjà implémenté dans ce repo* : étudie
+   [`app/graph.py`](../app/graph.py) (extract → curate ⇄ validate → finalize)
+   et [`app/validation.py`](../app/validation.py), puis ajoute une contrainte
+   validée en code (ex. « maximum 2 titres par artiste »).
 5. **Multi-agents** — un agent « curateur » qui critique la sélection d'un
    agent « chercheur » avant la création (l'évolution §10 du brief).
 

@@ -11,8 +11,6 @@ import argparse
 import asyncio
 import sys
 
-from langchain_core.messages import HumanMessage
-
 from app.config import get_logger
 from app.graph import build_graph
 from app.rag import ingest
@@ -28,9 +26,14 @@ DEFAULT_PROMPT = (
 async def run_agent(user_request: str) -> str:
     """Exécute l'agent sur une requête et retourne la réponse finale."""
     graph = await build_graph()
-    result = await graph.ainvoke({"messages": [HumanMessage(content=user_request)]})
-    final = result["messages"][-1]
-    return final.content
+    state = await graph.ainvoke({"request": user_request})
+    result = state["result"]
+    if "error" in result:
+        return f"❌ {result['error']}"
+    return (
+        f"✅ Playlist « {result['name']} » créée : {result['n_tracks']} titres, "
+        f"{result['duration_min']:.0f} min.\n{result['url']}"
+    )
 
 
 def main() -> None:

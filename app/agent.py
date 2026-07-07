@@ -16,7 +16,8 @@ logger = get_logger(__name__)
 def get_model() -> BaseChatModel:
     """Instancie le LLM à partir de `LLM_MODEL` (ex: 'openai:gpt-4o-mini')."""
     settings = get_settings()
-    model = init_chat_model(settings.llm_model, temperature=0.4)
+    # max_retries élevé : encaisse les 429 (quota tokens/min) avec backoff.
+    model = init_chat_model(settings.llm_model, temperature=0.4, max_retries=8)
     logger.info("LLM initialisé : %s", settings.llm_model)
     return model
 
