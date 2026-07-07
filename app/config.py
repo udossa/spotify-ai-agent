@@ -57,9 +57,7 @@ def get_settings() -> Settings:
 
 
 class _JsonFormatter(logging.Formatter):
-    """Formatteur JSON minimal pour des logs structurés."""
-
-    _BASE_ATTRS = frozenset(logging.LogRecord("", 0, "", 0, "", (), None).__dict__) | {"message"}
+    """Formatteur JSON minimal : une ligne JSON par log."""
 
     def format(self, record: logging.LogRecord) -> str:
         payload: dict[str, object] = {
@@ -69,10 +67,6 @@ class _JsonFormatter(logging.Formatter):
         }
         if record.exc_info:
             payload["exc"] = self.formatException(record.exc_info)
-        # Champs additionnels passés via `extra={...}`.
-        for key, value in record.__dict__.items():
-            if key not in self._BASE_ATTRS:
-                payload[key] = value
         return json.dumps(payload, ensure_ascii=False)
 
 

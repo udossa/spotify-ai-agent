@@ -33,7 +33,7 @@ def _load_documents() -> list[Document]:
         text = md_file.read_text(encoding="utf-8")
         for chunk in splitter.split_text(text):
             docs.append(Document(page_content=chunk, metadata={"source": md_file.name}))
-    logger.info("rag_documents_loaded", extra={"n_chunks": len(docs)})
+    logger.info("RAG : %d chunks chargés depuis data/", len(docs))
     return docs
 
 
@@ -50,7 +50,7 @@ def ingest(reset: bool = False) -> Chroma:
     docs = _load_documents()
     if docs:
         store.add_documents(docs)
-    logger.info("rag_ingest_done", extra={"persist_dir": str(settings.vectorstore_path)})
+    logger.info("RAG : index persisté dans %s", settings.vectorstore_path)
     return store
 
 

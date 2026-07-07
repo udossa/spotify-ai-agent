@@ -24,7 +24,7 @@ from spotipy.oauth2 import SpotifyOAuth
 # Charge le .env de la racine du projet (le cwd est fixé par le client MCP).
 load_dotenv()
 
-SCOPE = "playlist-modify-public playlist-modify-private user-read-private user-read-email"
+SCOPE = "playlist-modify-public playlist-modify-private"
 
 mcp = FastMCP("spotify")
 
@@ -53,13 +53,6 @@ def _fmt_track(item: dict[str, Any]) -> dict[str, Any]:
         "popularity": item.get("popularity"),
         "url": item.get("external_urls", {}).get("spotify"),
     }
-
-
-@mcp.tool()
-def get_current_user() -> dict[str, Any]:
-    """Retourne le profil de l'utilisateur Spotify authentifié (id, nom)."""
-    me = _client().me()
-    return {"id": me.get("id"), "display_name": me.get("display_name")}
 
 
 MAX_SEARCH_LIMIT = 10  # Plafond Spotify /search depuis février 2026 (était 50).

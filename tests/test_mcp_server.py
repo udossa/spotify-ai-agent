@@ -37,7 +37,7 @@ def test_search_limit_matches_feb_2026_api_cap() -> None:
     assert MAX_SEARCH_LIMIT == 10
 
 
-def test_scope_includes_write_and_identity() -> None:
+def test_scope_includes_write_permissions() -> None:
     # Sans les scopes d'écriture, la création de playlist échoue en 403.
-    for scope in ("playlist-modify-public", "playlist-modify-private", "user-read-email"):
+    for scope in ("playlist-modify-public", "playlist-modify-private"):
         assert scope in SCOPE

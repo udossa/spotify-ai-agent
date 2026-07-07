@@ -17,7 +17,7 @@ def get_model() -> BaseChatModel:
     """Instancie le LLM à partir de `LLM_MODEL` (ex: 'openai:gpt-4o-mini')."""
     settings = get_settings()
     model = init_chat_model(settings.llm_model, temperature=0.4)
-    logger.info("llm_initialized", extra={"model": settings.llm_model})
+    logger.info("LLM initialisé : %s", settings.llm_model)
     return model
 
 

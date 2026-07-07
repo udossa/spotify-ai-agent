@@ -86,8 +86,8 @@ L'agent agit sur un vrai compte Spotify via OAuth. Sur le
    > les comptes ajoutés ici (max 5) peuvent utiliser l'app. Sinon :
    > `403 — the user may not be registered`.
 
-Scopes demandés par le serveur MCP : `playlist-modify-public`,
-`playlist-modify-private`, `user-read-private`, `user-read-email`.
+Scopes demandés par le serveur MCP : `playlist-modify-public` et
+`playlist-modify-private` (le minimum pour créer et remplir des playlists).
 
 ## 3. Installation
 
@@ -107,25 +107,7 @@ Ouvre `.env` et renseigne :
 | `SPOTIPY_REDIRECT_URI` | Doit correspondre au Redirect URI configuré (§2.2) |
 | `LLM_MODEL` | Modèle, ex. `openai:gpt-4o-mini` |
 
-## 4. Vérifier la connexion Spotify (recommandé)
-
-Avant de lancer l'agent, valide l'auth et les droits d'écriture en une
-commande :
-
-```bash
-uv run python scripts/whoami.py
-```
-
-Le navigateur s'ouvre une fois pour le consentement OAuth (le token est ensuite
-mis en cache dans `.cache`). Le script affiche le compte utilisé puis **teste
-la création d'une playlist** (supprimée aussitôt) :
-
-- ✅ `Création OK` → tout est prêt.
-- ❌ `Création refusée : HTTP 403` → le compte affiché n'est pas autorisé sur
-  l'app : ajoute **l'email affiché** dans *User Management* (§2.2, étape 5) et
-  relance le script.
-
-## 5. Indexer le RAG
+## 4. Indexer le RAG
 
 La base de connaissance (`data/*.md` : profil musical, règles de playlist,
 artistes, genres) doit être indexée une fois dans ChromaDB :
@@ -137,7 +119,7 @@ uv run spotify-agent --ingest          # option --reset pour repartir de zéro
 Personnalise ensuite les fichiers de `data/` avec **tes** goûts, puis
 ré-indexe.
 
-## 6. Lancer l'agent
+## 5. Lancer l'agent
 
 ```bash
 # Sans argument : l'exemple Afrobounce Workout du brief
@@ -147,10 +129,12 @@ uv run spotify-agent
 uv run spotify-agent "Crée une playlist chill de 15 morceaux soul et jazz pour le soir"
 ```
 
-L'agent raisonne (les logs JSON sur stderr montrent les appels d'outils), crée
-la playlist sur ton compte et affiche le lien.
+Au **premier lancement**, le navigateur s'ouvre une fois pour autoriser l'accès
+Spotify (le token est ensuite mis en cache dans `.cache`). L'agent raisonne
+(les logs JSON sur stderr montrent les appels d'outils), crée la playlist sur
+ton compte et affiche le lien.
 
-## 7. Tests
+## 6. Tests
 
 ```bash
 uv run pytest        # tests unitaires, sans réseau ni clé API
@@ -162,7 +146,7 @@ uv run pytest        # tests unitaires, sans réseau ni clé API
 |---|---|---|
 | `Missing credentials` (OpenAI) | `.env` absent ou incomplet | Vérifie `cp .env.example .env` et `OPENAI_API_KEY` |
 | `403 — the user may not be registered` | Compte non autorisé sur l'app (mode Développement) | §2.2 étape 5, puis `rm -f .cache` et relance |
-| `403 Forbidden` à la création de playlist | Token émis pour une autre app, ou compte ≠ allowlist | `uv run python scripts/whoami.py` pour identifier le compte réel, corrige, `rm -f .cache` |
+| `403 Forbidden` persistant | Token en cache émis pour un autre compte/app | `rm -f .cache` puis relance : le navigateur redemande le consentement — connecte-toi avec le bon compte |
 | `400 Invalid limit` sur la recherche | Depuis **février 2026**, `/search` plafonne à 10 résultats | Déjà géré dans le serveur MCP (clamp à 10) |
 | Le navigateur ne s'ouvre pas à l'auth | Environnement headless | Copie l'URL affichée dans le terminal, ouvre-la, puis colle l'URL de redirection |
 
@@ -194,8 +178,6 @@ spotify-ai-agent/
 │   └── genres.md
 ├── docs/
 │   └── comment-marche-un-agent-ia.md
-├── scripts/
-│   └── whoami.py             # diagnostic auth Spotify
 └── tests/
 ```
 

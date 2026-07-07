@@ -31,5 +31,5 @@ async def get_spotify_tools() -> list[BaseTool]:
     """Retourne les outils Spotify exposés par le serveur MCP."""
     client = MultiServerMCPClient(_server_config())
     tools = await client.get_tools()
-    logger.info("mcp_tools_loaded", extra={"tools": [t.name for t in tools]})
+    logger.info("MCP : outils chargés → %s", ", ".join(t.name for t in tools))
     return tools

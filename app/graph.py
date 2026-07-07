@@ -27,5 +27,5 @@ async def build_graph() -> CompiledStateGraph:
     model = get_model()
     tools = await gather_tools()
     graph = create_react_agent(model, tools, prompt=SYSTEM_PROMPT)
-    logger.info("graph_built", extra={"n_tools": len(tools)})
+    logger.info("Graphe compilé avec %d outils", len(tools))
     return graph
