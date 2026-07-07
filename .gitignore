@@ -1,0 +1,13 @@
+# Secrets et tokens — ne JAMAIS committer
+.env
+.cache*
+
+# Environnement et caches Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Index vectoriel (régénérable via `spotify-agent --ingest`)
+vectorstore/

@@ -1,0 +1,52 @@
+[project]
+name = "spotify-ai-agent"
+version = "0.1.0"
+description = "Agent IA (LangGraph + RAG + MCP) qui crée des playlists Spotify à partir d'une intention en langage naturel."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "langgraph>=1.0",
+    "langchain>=1.0",
+    "langchain-text-splitters>=1.0",
+    "langchain-openai>=1.0",
+    "langchain-mcp-adapters>=0.3",
+    "langchain-chroma>=1.0",
+    "chromadb>=1.0",
+    "mcp>=1.2",
+    "spotipy>=2.24",
+    "pydantic>=2.10",
+    "pydantic-settings>=2.7",
+    "python-dotenv>=1.0",
+]
+
+# Installé automatiquement par `uv sync` (contrairement aux extras).
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.25",
+    "ruff>=0.9",
+]
+
+[project.optional-dependencies]
+# Pour utiliser un modèle Anthropic : uv sync --extra anthropic
+anthropic = [
+    "langchain-anthropic>=0.3",
+]
+
+[project.scripts]
+spotify-agent = "app.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app", "mcp_spotify_server"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
