@@ -146,6 +146,70 @@ séquence — elle **émerge** du prompt, des outils disponibles et de la demand
 Tu peux observer ces tours en direct : lance `uv run spotify-agent` et regarde
 les logs JSON sur stderr (`CallToolRequest` = un appel d'outil).
 
+### Le même run, en diagramme de séquence
+
+Qui appelle qui, dans l'ordre (`───►` appel, `◄┄┄┄` retour) :
+
+```text
+CLI            Agent            LLM             RAG             MCP          Spotify
+main.py        graph.py      API OpenAI       rag.py         server.py      API Web
+ │               │               │               │               │               │
+ │  run_agent()  │               │               │               │               │
+ │──────────────►│               │               │               │               │
+ │               │   lance le serveur MCP (stdio) + list_tools   │               │
+ │               │──────────────────────────────────────────────►│               │
+ │               │                5 outils Spotify               │               │
+ │               │◄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄│               │
+ │               │               │               │               │               │
+ │               │messages+outils│               │               │               │
+ │               │──────────────►│               │               │               │
+ │               │  → outil RAG  │               │               │               │
+ │               │◄┄┄┄┄┄┄┄┄┄┄┄┄┄┄│               │               │               │
+ │               │   search_music_knowledge()    │               │               │
+ │               │──────────────────────────────►│               │               │
+ │               │     règles + préférences      │               │               │
+ │               │◄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄│               │               │
+ │             ┌╌ boucle : ~6 recherches (une par genre) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┐
+ │               │  observation  │               │               │               │
+ │               │──────────────►│               │               │               │
+ │               │→ search_tracks│               │               │               │
+ │               │◄┄┄┄┄┄┄┄┄┄┄┄┄┄┄│               │               │               │
+ │               │              call_tool via stdio              │               │
+ │               │──────────────────────────────────────────────►│               │
+ │               │               │               │               │  GET /search  │
+ │               │               │               │               │──────────────►│
+ │               │               │               │               │  titres JSON  │
+ │               │               │               │               │◄┄┄┄┄┄┄┄┄┄┄┄┄┄┄│
+ │               │             ≤10 titres normalisés             │               │
+ │               │◄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄│               │
+ │             └╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┘
+ │               │  → création   │               │               │               │
+ │               │◄┄┄┄┄┄┄┄┄┄┄┄┄┄┄│               │               │               │
+ │               │    create_playlist, add_tracks_to_playlist    │               │
+ │               │──────────────────────────────────────────────►│               │
+ │               │               │               │               │    POST ×2    │
+ │               │               │               │               │──────────────►│
+ │               │               │               │               │ playlist créée│
+ │               │               │               │               │◄┄┄┄┄┄┄┄┄┄┄┄┄┄┄│
+ │               │            20 titres ajoutés + url            │               │
+ │               │◄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄│               │
+ │               │ réponse finale│               │               │               │
+ │               │◄┄┄┄┄┄┄┄┄┄┄┄┄┄┄│               │               │               │
+ │ lien playlist │               │               │               │               │
+ │◄┄┄┄┄┄┄┄┄┄┄┄┄┄┄│               │               │               │               │
+ │               │               │               │               │               │
+```
+
+Deux détails que le diagramme ne montre pas :
+
+- **L'auth OAuth est paresseuse** : le tout premier appel d'outil Spotify
+  déclenche `_client()` côté serveur → navigateur → token mis en cache
+  (`.cache`). Les appels suivants réutilisent le token.
+- **L'historique est cumulatif** : chaque retour vers l'agent est *ajouté* aux
+  messages. À chaque tour, le LLM revoit tout — c'est ce qui lui permet de
+  dédupliquer et d'équilibrer les genres à la sélection… et pourquoi chaque
+  tour coûte un peu plus cher que le précédent.
+
 **Et quand ça rate ?** Pendant le développement, l'API Spotify renvoyait des
 `403` à la création (endpoints supprimés en février 2026, cf. README). L'agent
 n'a pas planté : il a **observé l'erreur, re-raisonné**, et proposé la liste de
