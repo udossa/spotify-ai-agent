@@ -9,7 +9,7 @@ def test_fmt_track_extracts_expected_fields() -> None:
         "uri": "spotify:track:abc123",
         "name": "Last Last",
         "artists": [{"name": "Burna Boy"}],
-        "album": {"name": "Love, Damini"},
+        "album": {"name": "Love, Damini", "release_date": "2022-07-08"},
         "popularity": 80,
         "external_urls": {"spotify": "https://open.spotify.com/track/abc123"},
     }
@@ -20,6 +20,7 @@ def test_fmt_track_extracts_expected_fields() -> None:
         "name": "Last Last",
         "artists": ["Burna Boy"],
         "album": "Love, Damini",
+        "release_date": "2022-07-08",
         "popularity": 80,
         "url": "https://open.spotify.com/track/abc123",
     }

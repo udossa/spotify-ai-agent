@@ -50,6 +50,7 @@ def _fmt_track(item: dict[str, Any]) -> dict[str, Any]:
         "name": item.get("name"),
         "artists": [a.get("name") for a in item.get("artists", [])],
         "album": item.get("album", {}).get("name"),
+        "release_date": item.get("album", {}).get("release_date"),
         "popularity": item.get("popularity"),
         "url": item.get("external_urls", {}).get("spotify"),
     }
@@ -62,9 +63,16 @@ MAX_SEARCH_LIMIT = 10  # Plafond Spotify /search depuis février 2026 (était 50
 def search_tracks(query: str, limit: int = 10) -> list[dict[str, Any]]:
     """Recherche des morceaux sur Spotify.
 
-    query : requête. Filtres valides uniquement : `genre:`, `artist:`, `track:`,
-        `album:`, `year:` (ex. 'genre:afrobeat year:2020-2024'). N'utilise PAS de
-        filtres inexistants comme `energy:`, `mood:` ou `bpm:` (erreur 400).
+    query : le TEXTE LIBRE est le plus fiable (ex. 'rap français 2025',
+        'afro house workout'). Filtres optionnels : `artist:`, `track:`,
+        `album:`, `year:`, `genre:`. Attention : `genre:` n'accepte que des
+        tags EXACTS du catalogue Spotify (ex. 'hip hop', 'rap', 'afrobeats') —
+        un tag inventé renvoie 0 résultat SANS erreur. N'utilise jamais de
+        filtre inexistant (`energy:`, `mood:`, `bpm:` → erreur 400).
+        Si une recherche renvoie 0 résultat : retente en texte libre, sans
+        filtre. Pour une contrainte d'année, filtre toi-même les résultats
+        via leur champ `release_date` plutôt que par `year:` (peu fiable
+        combiné à `genre:`).
     limit : nombre de résultats, entre 1 et 10 (plafond Spotify). Pour couvrir
         plusieurs genres, fais plusieurs recherches plutôt qu'un grand limit.
     """

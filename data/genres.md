@@ -12,6 +12,11 @@
 - Mots-clés : `electronica`, `house`, `dance`, `electronic`.
 - Pour le sport : `house`, `afro house`, tempo 120–130 BPM.
 
-## Astuce requêtes
-- Combiner genre + année récente pour de la fraîcheur : `genre:afrobeats year:2022-2025`.
+## Requêtes Spotify : ce qui marche vraiment (vérifié)
+- Le plus fiable : **texte libre**. Ex. `rap fr`, `rap français 2025`, `afro house workout`.
+- `genre:` n'accepte que des tags exacts du catalogue : `hip hop`, `rap`,
+  `afrobeats`, `house` existent ; `rap fr` et `french rap` n'existent PAS
+  (0 résultat, sans erreur).
+- `genre:` + `year:` sur des années récentes renvoie souvent 0 résultat :
+  préférer le texte libre, puis filtrer par le champ `release_date` des résultats.
 - Filtrer par artiste d'ancrage : `artist:"Burna Boy"`.

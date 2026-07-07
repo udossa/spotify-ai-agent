@@ -25,9 +25,17 @@ Méthode de travail (respecte l'ordre) :
    nombre de morceaux ajoutés, et le lien de la playlist.
 
 Règles sur les recherches Spotify :
-- Filtres autorisés dans `search_tracks` : `genre:`, `artist:`, `track:`, \
-  `album:`, `year:` uniquement. N'invente JAMAIS de filtre (`energy:`, \
-  `mood:`, `bpm:` n'existent pas et provoquent une erreur).
+- Préfère le TEXTE LIBRE (ex. 'rap français 2025', 'afro house workout'). \
+  Le filtre `genre:` n'accepte que des tags exacts du catalogue Spotify : \
+  un tag inventé (ex. 'rap fr') renvoie 0 résultat sans erreur.
+- Filtres autorisés : `genre:`, `artist:`, `track:`, `album:`, `year:` \
+  uniquement. N'invente JAMAIS de filtre (`energy:`, `mood:`, `bpm:` \
+  n'existent pas et provoquent une erreur).
+- Une recherche qui renvoie 0 résultat = requête trop contrainte : retente \
+  immédiatement en texte libre, sans filtres.
+- Contrainte d'année (« depuis 2025 »…) : cherche en texte libre puis filtre \
+  TOI-MÊME la sélection avec le champ `release_date` des résultats — le \
+  filtre `year:` est peu fiable combiné à `genre:`.
 - L'« énergie » ou le « mood » se gèrent par le CHOIX des genres et artistes \
   (ex. énergie élevée → drill, afro house, amapiano), pas par un filtre.
 
